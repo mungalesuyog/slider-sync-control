@@ -33,21 +33,39 @@ export default function ControlPanel() {
   const [selectedError, setSelectedError] = useState<string>('');
   const [selectedAxis, setSelectedAxis] = useState<string>('');
   const [manualValue, setManualValue] = useState<string>('');
+  const [weight, setWeight] = useState<string>('');
   const { toast } = useToast();
 
-  const sendAxisData = useCallback(async (data: AxisValues, source: 'slider' | 'manual') => {
+  const sendIndividualAxisData = useCallback(async (axis: string, value: number) => {
     try {
-      // Mock API call
-      console.log('Sending axis data:', { data, source });
+      const url = `api/v1/infuser/${axis.toUpperCase()}/${value}`;
+      console.log('Sending individual axis data:', url);
       
       toast({
         title: "Data sent successfully",
-        description: `X: ${data.x}, Y: ${data.y}, Z: ${data.z} (via ${source})`,
+        description: `${axis.toUpperCase()}: ${value}`,
       });
     } catch (error) {
       toast({
         title: "Error sending data",
-        description: "Failed to send axis values",
+        description: `Failed to send ${axis} axis value`,
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  const sendWeightData = useCallback(async (weightValue: number) => {
+    try {
+      console.log('Sending weight data:', weightValue);
+      
+      toast({
+        title: "Weight data sent",
+        description: `Weight: ${weightValue}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error sending weight",
+        description: "Failed to send weight data",
         variant: "destructive",
       });
     }
@@ -74,7 +92,7 @@ export default function ControlPanel() {
   const handleSliderChange = (axis: keyof AxisValues, value: number[]) => {
     const newValues = { ...axisValues, [axis]: value[0] };
     setAxisValues(newValues);
-    sendAxisData(newValues, 'slider');
+    sendIndividualAxisData(axis, value[0]);
   };
 
   const handleManualSubmit = () => {
@@ -99,9 +117,33 @@ export default function ControlPanel() {
 
     const newValues = { ...axisValues, [selectedAxis]: value };
     setAxisValues(newValues);
-    sendAxisData(newValues, 'manual');
+    sendIndividualAxisData(selectedAxis, value);
     setManualValue('');
     setSelectedAxis('');
+  };
+
+  const handleWeightSubmit = () => {
+    if (!weight) {
+      toast({
+        title: "Invalid input",
+        description: "Please enter a weight value",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const weightValue = parseFloat(weight);
+    if (isNaN(weightValue) || weightValue <= 0) {
+      toast({
+        title: "Invalid weight",
+        description: "Please enter a valid weight value",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    sendWeightData(weightValue);
+    setWeight('');
   };
 
   const handleErrorSubmit = () => {
@@ -212,6 +254,33 @@ export default function ControlPanel() {
                 >
                   <Send className="h-4 w-4 mr-2" />
                   Apply Value
+                </Button>
+              </div>
+            </Card>
+
+            {/* Weight Input */}
+            <Card className="p-8 bg-gradient-card backdrop-blur border-border shadow-card">
+              <h2 className="text-2xl font-semibold mb-6">Weight Control</h2>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Weight Value</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder="Enter weight"
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleWeightSubmit}
+                  className="w-full bg-gradient-button hover:opacity-90 transition-opacity"
+                  size="lg"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Submit Weight
                 </Button>
               </div>
             </Card>
